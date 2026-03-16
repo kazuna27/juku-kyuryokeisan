@@ -30,9 +30,9 @@ conn = st.connection("gsheets", type=GSheetsConnection)
 def load_data():
     return conn.read(ttl=0)
 
-# データを保存する関数
-def save_data(df):
-    conn.update(data=df)
+# データを保存する関数 (追記モードに変更)
+def save_data(new_row_df):
+    conn.create(data=new_row_df)
 
 # --- 状態保持 ---
 if "selected_date" not in st.session_state:
@@ -102,8 +102,8 @@ with tab_input:
             new_entry = pd.DataFrame([{
                 "日付": date_str, "コマ": koma_choice, "学年": grade, "人数": count, "金額": one_pay
             }])
-            updated_df = pd.concat([all_data, new_entry], ignore_index=True)
-            save_data(updated_df)
+            # updated_df = pd.concat... の行を消して、直接 new_entry を送る
+            save_data(new_entry)
             st.success(f"チャリン♪ {date_str}({wd}) を保存！")
             time.sleep(1)
             st.rerun()
