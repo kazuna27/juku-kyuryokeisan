@@ -44,10 +44,10 @@ try:
     # 🚀 これが2026年最新版の「正解」の渡し方！
     # service_accountという引数名で、辞書を丸ごと渡す
     # 🚀 引数名を spreadsheet から url に変えるのが最後の魔法だ！
+    # 🚀 引数名(url=)を消して、URLをそのまま一番最初に置くのが正解！
     conn = st.connection(
-        "gsheets",
-        type=GSheetsConnection,
-        url=URL,
+        URL, 
+        type=GSheetsConnection, 
         service_account=service_account_info
     )
     
