@@ -21,17 +21,22 @@ st.markdown("""
 
 st.title("💰 塾バイト給料計算 💰")
 
-# --- 💾 GSheets 連携 ---
+# --- 📊 接続設定 (読み込み停止回避版) ---
 try:
+    # URLを直接渡すことで、探しに行く手間を省いて高速化するぜ
+    URL = "https://docs.google.com/spreadsheets/d/13GlOlfmq5EqPeWvpydnuDUzk-OkU8jPNPb8IkFTHSFo/edit?usp=sharing"
+    
     conn = st.connection("gsheets", type=GSheetsConnection)
-    df_raw = conn.read(ttl=0)
-    # スプレッドシートから読み込んだデータをセッションに保持
+    # ここで spreadsheet=URL を指定するのがポイントだ！
+    df_raw = conn.read(spreadsheet=URL, ttl=0)
+    
     if df_raw is not None and not df_raw.empty:
         st.session_state.all_history = df_raw.to_dict('records')
     else:
         st.session_state.all_history = []
 except Exception as e:
-    st.error("接続エラー。")
+    st.error("まだ扉が開かないぜ、ブラザー。")
+    st.write("エラーの正体:", e)
     st.stop()
 
 # 状態保持
