@@ -19,13 +19,20 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- 📊 接続設定 ---
+# --- 📊 接続設定 (2026年・最終安定版) ---
 try:
-    creds_info = dict(st.secrets["connections"]["gsheets"])
-    creds_info["private_key"] = creds_info["private_key"].replace("\\n", "\n")
-    conn = st.connection("gsheets", type=GSheetsConnection, **creds_info)
+    # Secretsから直接読み込むのが一番エラーが出ない
+    # 引数に type 以外を渡さないのが今のライブラリの正解
+    conn = st.connection("gsheets", type=GSheetsConnection)
     df = conn.read(ttl=0)
+    
+    # ここから下は日付処理
+    if not df.empty:
+        df['日付'] = pd.to_datetime(df['日付']).dt.date
 except Exception as e:
-    st.error("接続エラー。Secretsを確認してくれ。")
+    # どんなエラーが出ているか、ブラザーに詳しく見せるようにした
+    st.error("接続エラー。でも諦めるなブラザー！")
+    st.write("詳細なエラー内容:", e)
     st.stop()
 
 # --- 📱 画面切り替えタブ ---
