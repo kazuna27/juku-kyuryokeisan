@@ -7,6 +7,7 @@ import time
 # --- アプリの設定 ---
 st.set_page_config(page_title="塾バイト給料計算", layout="centered")
 
+# 🎨 デザイン (フォントや色)
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Kosugi+Maru&display=swap');
@@ -18,10 +19,9 @@ st.markdown("""
 
 st.title("💰 塾バイト給料計算 💰")
 
-# --- 📊 スプレッドシート連携 (究極の自動版) ---
+# --- 📊 スプレッドシート連携 (Secrets自動読み込み版) ---
 try:
-    # 引数を一切渡さないのが、実は一番エラーが出ない最新の書き方！
-    # Secrets の [connections.gsheets] を勝手に読み込んでくれます
+    # 引数を渡さないことで、Secretsの[connections.gsheets]を自動で使ってくれるぞ！
     conn = st.connection("gsheets", type=GSheetsConnection)
     
     # データを読む
@@ -33,6 +33,7 @@ try:
         grade = st.selectbox("学年", ["小学生", "中学生", "高校生"])
         count = st.radio("生徒数", [1, 2, 3], horizontal=True)
         
+        # 給料計算
         prices = {"小学生": 1680, "中学生": 1760, "高校生": 2192}
         pay = int(prices[grade] + (count - 1) * 100)
         
@@ -40,9 +41,15 @@ try:
         submitted = st.form_submit_button("保存する！")
         
         if submitted:
-            new_row = pd.DataFrame([{"日付": str(date), "学年": grade, "人数": count, "金額": pay}])
+            new_row = pd.DataFrame([{
+                "日付": str(date),
+                "学年": grade,
+                "人数": count,
+                "金額": pay
+            }])
+            # スプレッドシートへ追記
             conn.create(data=new_row)
-            st.success("スプレッドシートに保存したよ！")
+            st.success("チャリン♪ 保存したよ、ブラザー！")
             time.sleep(1)
             st.rerun()
 
@@ -50,7 +57,9 @@ try:
     st.subheader("直近の記録")
     if not df.empty:
         st.dataframe(df.tail(5), use_container_width=True)
+    else:
+        st.info("まだデータがないよ。最初の授業を記録しよう！")
 
 except Exception as e:
-    st.error("ついに最終段階だブラザー。Secretsを確認しよう。")
-    st.write(e)
+    st.error("あと一歩だ！Secretsの貼り付けを確認してね。")
+    st.write("エラー詳細:", e)
