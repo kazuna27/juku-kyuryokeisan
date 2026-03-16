@@ -29,6 +29,19 @@ try:
         creds_info["private_key"] = creds_info["private_key"].replace("\\n", "\n")
     
     # 手動で設定を渡して接続！
+    # Secretsから鍵の情報をコピー（読み取り専用エラー回避）
+    creds_info = dict(st.secrets["connections"]["gsheets"])
+    
+    # 【ここが重要！】
+    # Secretsの中にある 'type' を消しちゃえば、コード側の type=GSheetsConnection とケンカしない！
+    if "type" in creds_info:
+        del creds_info["type"]
+    
+    # 秘密鍵の改行修復
+    if "private_key" in creds_info:
+        creds_info["private_key"] = creds_info["private_key"].replace("\\n", "\n")
+    
+    # 接続！
     conn = st.connection("gsheets", type=GSheetsConnection, **creds_info)
     df = conn.read(ttl=0)
 
