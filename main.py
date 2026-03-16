@@ -116,12 +116,24 @@ with tab_input:
         if st.button("記録を保存する"):
             # 保存データ作成
             new_data = {"date": date_str, "koma": koma_choice, "grade": grade, "count": int(count), "amount": int(one_pay)}
-            # 既存データに結合して上書き
+            
+            # 既存データに新しい1行を足す
             new_history = st.session_state.all_history + [new_data]
-            conn.create(data=pd.DataFrame(new_history))
-            st.success(f"保存したよ！ {date_str}({wd})")
-            time.sleep(0.4)
-            st.rerun()
+            
+            # 🚀 ここが重要！ create ではなく update(worksheet="Sheet1", data=...) を使う
+            # もしシート名が「シート1」なら worksheet="シート1" に書き換えてね
+            try:
+                conn.update(worksheet="Sheet1", data=pd.DataFrame(new_history))
+                st.success(f"保存したよ！ {date_str}({wd})")
+                time.sleep(0.4)
+                st.rerun()
+            except:
+                # updateがダメな場合、一度クリアして書き込む
+                conn.create(data=pd.DataFrame(new_history))
+                st.success(f"保存完了だぜブラザー！")
+                time.sleep(0.4)
+                st.rerun()
+        
 
 with tab_dashboard:
     st.subheader("頑張りの成果！")
