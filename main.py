@@ -7,7 +7,7 @@ import time
 # --- アプリの設定 ---
 st.set_page_config(page_title="塾バイト給料計算", layout="centered")
 
-# 🎨 デザイン (フォントや色)
+# 🎨 デザイン
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Kosugi+Maru&display=swap');
@@ -19,9 +19,9 @@ st.markdown("""
 
 st.title("💰 塾バイト給料計算 💰")
 
-# --- 📊 スプレッドシート連携 (Secrets自動読み込み版) ---
+# --- 📊 スプレッドシート連携 (Secrets 自動読み込み版) ---
 try:
-    # 引数を渡さないことで、Secretsの[connections.gsheets]を自動で使ってくれるぞ！
+    # 引数を一切渡さないことで、Secrets の [connections.gsheets] を自動で使ってくれる
     conn = st.connection("gsheets", type=GSheetsConnection)
     
     # データを読む
@@ -33,7 +33,7 @@ try:
         grade = st.selectbox("学年", ["小学生", "中学生", "高校生"])
         count = st.radio("生徒数", [1, 2, 3], horizontal=True)
         
-        # 給料計算
+        # 給料計算 (ブラザーの単価設定)
         prices = {"小学生": 1680, "中学生": 1760, "高校生": 2192}
         pay = int(prices[grade] + (count - 1) * 100)
         
@@ -47,9 +47,9 @@ try:
                 "人数": count,
                 "金額": pay
             }])
-            # スプレッドシートへ追記
+            # スプレッドシートへ保存
             conn.create(data=new_row)
-            st.success("チャリン♪ 保存したよ、ブラザー！")
+            st.success("チャリン♪ スプレッドシートに保存したよ！")
             time.sleep(1)
             st.rerun()
 
@@ -61,5 +61,5 @@ try:
         st.info("まだデータがないよ。最初の授業を記録しよう！")
 
 except Exception as e:
-    st.error("あと一歩だ！Secretsの貼り付けを確認してね。")
+    st.error("あと一歩だブラザー！Secrets の貼り付けをもう一度確認してくれ。")
     st.write("エラー詳細:", e)
