@@ -19,8 +19,9 @@ st.markdown("""
 
 st.title("💰 塾バイト給料計算 💰")
 
-# --- 📊 秘密鍵 兼 設定 (これが最新の正解) ---
+# --- 📊 秘密鍵 兼 設定 (最新版対応) ---
 creds = {
+    # 🚀 ここにスプレッドシートのURLを直接入れるのが最新のコツ！
     "spreadsheet": "https://docs.google.com/spreadsheets/d/13GlOlfmq5EqPeWvpydnuDUzk-OkU8jPNPb8IkFTHSFo/edit?usp=sharing",
     "project_id": "juku-app-490419",
     "private_key_id": "64ba85aebfe8f98251481de4a1589cf25b5133d3",
@@ -33,20 +34,21 @@ creds = {
     "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/juku-calc%40juku-app-490419.iam.gserviceaccount.com"
 }
 
-# 秘密鍵の改行修復
+# 秘密鍵の改行を修復
 creds["private_key"] = creds["private_key"].replace("\\n", "\n")
 
 try:
-    # 🚀 最新版の正しい接続方法: URLもcredsの中に含めて一気に渡す！
+    # 🚀 ここが修正ポイント: 引数に spreadsheet= を含めず、全部 creds で渡す！
     conn = st.connection("gsheets", type=GSheetsConnection, **creds)
     df = conn.read(ttl=0)
 
-    st.subheader("今日の授業を記録")
+    st.subheader("授業を記録する")
     with st.form("input_form"):
         date = st.date_input("日付", datetime.date.today())
         grade = st.selectbox("学年", ["小学生", "中学生", "高校生"])
         count = st.radio("生徒数", [1, 2, 3], horizontal=True)
         
+        # 簡易計算
         prices = {"小学生": 1680, "中学生": 1760, "高校生": 2192}
         pay = int(prices[grade] + (count - 1) * 100)
         
@@ -54,9 +56,16 @@ try:
         submitted = st.form_submit_button("保存する！")
         
         if submitted:
-            new_row = pd.DataFrame([{"日付": str(date), "学年": grade, "人数": count, "金額": pay}])
+            new_row = pd.DataFrame([{
+                "日付": str(date),
+                "コマ": "授業",
+                "学年": grade,
+                "人数": count,
+                "金額": pay
+            }])
+            # 追記
             conn.create(data=new_row)
-            st.success("スプレッドシートに保存したよ！")
+            st.success("チャリン♪ 保存したよ！")
             time.sleep(1)
             st.rerun()
 
@@ -66,5 +75,5 @@ try:
         st.dataframe(df.tail(5), use_container_width=True)
 
 except Exception as e:
-    st.error("接続エラー。でも諦めるなブラザー！")
+    st.error("接続エラー。でも大丈夫、あと少しだブラザー！")
     st.write(e)
