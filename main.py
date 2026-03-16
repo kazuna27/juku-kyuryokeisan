@@ -114,29 +114,35 @@ with tab_input:
         st.warning(f"⚠️ {date_str} の {koma_choice} は既に登録済み。")
     else:
         if st.button("記録を保存する"):
-            # 保存データ作成
-            new_data = {"date": date_str, "koma": koma_choice, "grade": grade, "count": int(count), "amount": int(one_pay)}
+            # 🚀 項目名をスプレッドシートと同じ日本語にする
+            new_data = {
+                "日付": date_str, 
+                "コマ": koma_choice, 
+                "学年": grade, 
+                "人数": int(count), 
+                "金額": int(one_pay)
+            }
             
-            # 既存データに新しい1行を足す
+            # 既存データと合体
+            # ※ここで st.session_state.all_history の中身も日本語に合わせる必要があるため、シンプルに書き換える
             new_history = st.session_state.all_history + [new_data]
             
-            # 🚀 ここが重要！ create ではなく update(worksheet="Sheet1", data=...) を使う
-            # もしシート名が「シート1」なら worksheet="シート1" に書き換えてね
             try:
-                conn.update(worksheet="Sheet1", data=pd.DataFrame(new_history))
+                # シート1へ上書き保存
+                conn.update(worksheet="シート1", data=pd.DataFrame(new_history))
                 st.success(f"保存したよ！ {date_str}({wd})")
                 time.sleep(0.4)
                 st.rerun()
             except:
-                # updateがダメな場合、一度クリアして書き込む
+                # エラーが出た場合の予備
                 conn.create(data=pd.DataFrame(new_history))
-                st.success(f"保存完了だぜブラザー！")
+                st.success("保存完了！")
                 time.sleep(0.4)
                 st.rerun()
         
 
 with tab_dashboard:
-    st.subheader("頑張りの成果！")
+    st.subheader("今月の頑張り")
     if df.empty:
         st.write("データがまだないよ。")
     else:
