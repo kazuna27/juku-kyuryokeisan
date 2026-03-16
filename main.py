@@ -43,10 +43,11 @@ URL = "https://docs.google.com/spreadsheets/d/13GlOlfmq5EqPeWvpydnuDUzk-OkU8jPNP
 try:
     # 🚀 これが2026年最新版の「正解」の渡し方！
     # service_accountという引数名で、辞書を丸ごと渡す
+    # 🚀 引数名を spreadsheet から url に変えるのが最後の魔法だ！
     conn = st.connection(
         "gsheets",
         type=GSheetsConnection,
-        spreadsheet=URL,
+        url=URL,
         service_account=service_account_info
     )
     
