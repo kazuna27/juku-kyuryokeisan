@@ -19,30 +19,12 @@ st.markdown("""
 
 st.title("💰 塾バイト給料計算 💰")
 
-# --- 📊 スプレッドシート連携 (1行秘密鍵対応版) ---
+# --- 📊 スプレッドシート連携 (2026年・最終安定版) ---
 try:
-    # Secretsから鍵の情報を一度取り出し、書き換え可能な形(dict)に変換する
-    creds_info = dict(st.secrets["connections"]["gsheets"])
+    # 最新版では Secrets を直接読み込むので、引数に色々渡さなくてOK！
+    conn = st.connection("gsheets", type=GSheetsConnection)
     
-    # 秘密鍵の中の \n 文字を、本物の改行に変換（これで安全に書き換えられる！）
-    if "private_key" in creds_info:
-        creds_info["private_key"] = creds_info["private_key"].replace("\\n", "\n")
-    
-    # 手動で設定を渡して接続！
-    # Secretsから鍵の情報をコピー（読み取り専用エラー回避）
-    creds_info = dict(st.secrets["connections"]["gsheets"])
-    
-    # 【ここが重要！】
-    # Secretsの中にある 'type' を消しちゃえば、コード側の type=GSheetsConnection とケンカしない！
-    if "type" in creds_info:
-        del creds_info["type"]
-    
-    # 秘密鍵の改行修復
-    if "private_key" in creds_info:
-        creds_info["private_key"] = creds_info["private_key"].replace("\\n", "\n")
-    
-    # 接続！
-    conn = st.connection("gsheets", type=GSheetsConnection, **creds_info)
+    # データを読む
     df = conn.read(ttl=0)
 
     st.subheader("授業を記録する")
@@ -80,5 +62,5 @@ try:
         st.info("まだデータがないよ。最初の授業を記録しよう！")
 
 except Exception as e:
-    st.error("まだエラーが出るみたいだね。")
+    st.error("あと少し！Secretsの設定を確認してみて。")
     st.write("エラー詳細:", e)
