@@ -19,12 +19,17 @@ st.markdown("""
 
 st.title("💰 塾バイト給料計算 💰")
 
-# --- 📊 スプレッドシート連携 (真・修正版) ---
+# --- 📊 スプレッドシート連携 (1行秘密鍵対応版) ---
 try:
-    # 接続の確立 (最新のライブラリに合わせた書き方)
-    conn = st.connection("gsheets", type=GSheetsConnection)
+    # Secretsから鍵の情報を直接取り出す
+    creds_info = st.secrets["connections"]["gsheets"]
     
-    # データを読む
+    # 秘密鍵の中の \n 文字を、プログラムが理解できる「本物の改行」に変換
+    if "private_key" in creds_info:
+        creds_info["private_key"] = creds_info["private_key"].replace("\\n", "\n")
+    
+    # 手動で設定を渡して接続！
+    conn = st.connection("gsheets", type=GSheetsConnection, **creds_info)
     df = conn.read(ttl=0)
 
     st.subheader("授業を記録する")
