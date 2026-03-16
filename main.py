@@ -29,7 +29,7 @@ try:
         creds_info["private_key"] = creds_info["private_key"].replace("\\n", "\n")
     
     # 手動で設定を渡して接続！
-    conn = st.connection("gsheets", type=GSheetsConnection, **creds_info)
+    conn = st.connection("gsheets", **creds_info)
     df = conn.read(ttl=0)
 
     st.subheader("授業を記録する")
