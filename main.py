@@ -21,10 +21,10 @@ st.title("💰 塾バイト給料計算 💰")
 
 # --- 📊 スプレッドシート連携 (1行秘密鍵対応版) ---
 try:
-    # Secretsから鍵の情報を直接取り出す
-    creds_info = st.secrets["connections"]["gsheets"]
+    # Secretsから鍵の情報を一度取り出し、書き換え可能な形(dict)に変換する
+    creds_info = dict(st.secrets["connections"]["gsheets"])
     
-    # 秘密鍵の中の \n 文字を、プログラムが理解できる「本物の改行」に変換
+    # 秘密鍵の中の \n 文字を、本物の改行に変換（これで安全に書き換えられる！）
     if "private_key" in creds_info:
         creds_info["private_key"] = creds_info["private_key"].replace("\\n", "\n")
     
