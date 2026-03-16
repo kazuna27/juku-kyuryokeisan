@@ -1,119 +1,162 @@
 import streamlit as st
-import pandas as pd
-from streamlit_gsheets import GSheetsConnection
 import datetime
+import pandas as pd
+import plotly.express as px
 import time
+from streamlit_gsheets import GSheetsConnection
 
 # --- アプリの設定 ---
-st.set_page_config(page_title="塾バイト給料計算", layout="centered")
+st.set_page_config(page_title="塾バイト給料計算", layout="centered", initial_sidebar_state="collapsed")
 
-# 🎨 デザイン
+# 🎨 カスタムCSS (完璧版を完全再現)
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Kosugi+Maru&display=swap');
     html, body, [data-testid="stHeader"] { font-family: 'Kosugi Maru', sans-serif; background-color: #fffdf5; }
     h1 { color: #ff9800; text-align: center; font-size: 32px; font-weight: bold; }
-    .stButton>button { width: 100%; border-radius: 50px; background-color: #ff9800; color: white; font-weight: bold; border: none; }
-    div[data-testid="stMetricValue"] { color: #ff9800; }
+    h2, h3 { color: #f57c00; }
+    .stButton>button { 
+        width: 100%; border-radius: 50px; 
+        background-color: #ff9800; color: white; 
+        font-weight: bold; font-size: 18px; 
+        padding: 10px 20px; border: none; 
+        box-shadow: 0 4px 0 #e65100;
+    }
+    .stButton>button:active { transform: translateY(2px); box-shadow: 0 2px 0 #e65100; }
+    div[data-testid="stMetricValue"] { color: #ff5722 !important; font-size: 40px !important; font-weight: bold !important; }
+    .stTabs [data-baseweb="tab-list"] { background-color: #ffe0b2; border-radius: 20px; padding: 5px; }
+    .stTabs [data-baseweb="tab"] { color: #e65100; font-weight: bold; }
 </style>
 """, unsafe_allow_html=True)
 
-# --- 📊 接続設定 ---
-# --- 📊 接続設定 (2026年・最終安定版) ---
+st.title("💰 塾バイト給料計算 💰")
+
+# --- 💾 GSheets 連携機能 ---
 try:
-    # Secretsから直接読み込むのが一番エラーが出ない
-    # 引数に type 以外を渡さないのが今のライブラリの正解
+    # Secretsから自動接続
     conn = st.connection("gsheets", type=GSheetsConnection)
-    df = conn.read(ttl=0)
-    
-    # ここから下は日付処理
-    if not df.empty:
-        df['日付'] = pd.to_datetime(df['日付']).dt.date
+    # データを読み込み
+    df_raw = conn.read(ttl=0)
+    # リスト形式に変換してセッション状態を再現
+    if df_raw.empty:
+        st.session_state.all_history = []
+    else:
+        st.session_state.all_history = df_raw.to_dict('records')
 except Exception as e:
-    # どんなエラーが出ているか、ブラザーに詳しく見せるようにした
-    st.error("接続エラー。でも諦めるなブラザー！")
-    st.write("詳細なエラー内容:", e)
+    st.error("接続エラー。Secretsまたはスプレッドシートの共有設定を確認してくれ。")
+    st.write(e)
     st.stop()
 
-# --- 📱 画面切り替えタブ ---
-tab1, tab2, tab3 = st.tabs(["🏠 ホーム", "📜 履歴・削除", "📈 分析"])
+# 状態保持用（バグ防止 - 完璧版を完全再現）
+if "selected_date" not in st.session_state:
+    st.session_state.selected_date = datetime.date.today()
+if "current_grade" not in st.session_state:
+    st.session_state.current_grade = "小学生"
+if "current_count" not in st.session_state:
+    st.session_state.current_count = 1
 
-# --- 🏠 ホーム画面 ---
-with tab1:
-    st.title("💰 給料記録 💰")
+# --- 🛠 計算ロジック ---
+def calc_juku_pay(grade, count):
+    prices = {"小学生": 1680, "中学生": 1760, "高校生": 2192}
+    base = prices.get(grade, 1760)
+    return int(base + (count - 1) * 100)
+
+WEEKDAYS_JP = ["月", "火", "水", "木", "金", "土", "日"]
+
+# --- 📊 データ処理 ---
+df = pd.DataFrame(st.session_state.all_history)
+if not df.empty:
+    df['date'] = pd.to_datetime(df['date'])
+    df['月'] = df['date'].dt.strftime("%Y-%m")
+
+# --- 📱 画面構成 ---
+tab_input, tab_dashboard, tab_total = st.tabs(["📅 授業を入力", "📈 グラフ", "💰 履歴"])
+
+with tab_input:
+    st.subheader("今日の授業を記録")
     
-    # 今月の給料見込み計算
-    if not df.empty:
-        df['日付'] = pd.to_datetime(df['日付']).dt.date
-        today = datetime.date.today()
-        this_month_pay = df[pd.to_datetime(df['日付']).dt.month == today.month]['金額'].sum()
-        st.metric("今月の給料見込み", f"{int(this_month_pay):,} 円")
+    col_date, col_next = st.columns([3, 1])
+    with col_date:
+        current_date = st.date_input("日付を選択", st.session_state.selected_date)
+        st.session_state.selected_date = current_date
+        wd = WEEKDAYS_JP[st.session_state.selected_date.weekday()]
+        st.write(f"選択中: **{st.session_state.selected_date.strftime('%Y/%m/%d')} ({wd})**")
+
+    with col_next:
+        st.write("")
+        st.write("")
+        if st.button("次の日⏩"):
+            st.session_state.selected_date += datetime.timedelta(days=1)
+            st.rerun()
+            
+    date_str = st.session_state.selected_date.strftime("%Y-%m-%d")
+    
+    koma_options = {"1限 (16:30-)": 1.0, "2限 (17:30-)": 1.8, "3限 (19:00-)": 1.8, "4限 (20:30-)": 1.8}
+    koma_choice = st.selectbox("コマを選択", list(koma_options.keys()))
+    
+    grade = st.selectbox("最高学年", ["小学生", "中学生", "高校生"], 
+                         index=["小学生", "中学生", "高校生"].index(st.session_state.current_grade))
+    st.session_state.current_grade = grade
+
+    count = st.radio("生徒数", [1, 2, 3], index=[1, 2, 3].index(st.session_state.current_count), horizontal=True)
+    st.session_state.current_count = count
+    
+    if koma_options[koma_choice] == 1.0:
+        one_pay = int(1050 + (count-1)*100)
     else:
-        st.metric("今月の給料見込み", "0 円")
+        one_pay = calc_juku_pay(grade, count)
+    
+    st.markdown(f"給料予測: <span style='color:#ff5722; font-size:28px; font-weight:bold;'>{one_pay:,} 円</span>", unsafe_allow_html=True)
 
-    st.divider()
+    is_duplicate = any(item for item in st.session_state.all_history if item['date'] == date_str and item['koma'] == koma_choice)
 
-    # 次の日ボタンのロジック
-    if 'target_date' not in st.session_state:
-        st.session_state.target_date = datetime.date.today()
-
-    col_d1, col_d2 = st.columns([3, 1])
-    with col_d1:
-        date = st.date_input("日付を選択", st.session_state.target_date)
-    with col_d2:
-        if st.button("翌日へ"):
-            st.session_state.target_date += datetime.timedelta(days=1)
+    if is_duplicate:
+        st.warning(f"⚠️ {date_str} の {koma_choice} は既に登録済み。")
+    else:
+        if st.button("記録を保存する"):
+            # 保存データ作成
+            new_data = {"date": date_str, "koma": koma_choice, "grade": grade, "count": int(count), "amount": int(one_pay)}
+            # 既存データに結合して上書き
+            new_history = st.session_state.all_history + [new_data]
+            conn.create(data=pd.DataFrame(new_history))
+            st.success(f"保存したよ！ {date_str}({wd})")
+            time.sleep(0.4)
             st.rerun()
 
-    with st.form("input_form"):
-        grade = st.selectbox("学年", ["小学生", "中学生", "高校生"])
-        count = st.radio("生徒数", [1, 2, 3], horizontal=True)
-        
-        # 給料計算
-        prices = {"小学生": 1680, "中学生": 1760, "高校生": 2192}
-        pay = int(prices[grade] + (count - 1) * 100)
-        
-        st.write(f"今回の給料: **{pay:,} 円**")
-        submitted = st.form_submit_button("記録を保存")
-        
-        if submitted:
-            new_row = pd.DataFrame([{"日付": date, "学年": grade, "人数": count, "金額": pay}])
-            conn.create(data=new_row)
-            st.success("保存したぜ！")
-            time.sleep(1)
-            st.rerun()
+with tab_dashboard:
+    st.subheader("頑張りの成果！")
+    if df.empty:
+        st.write("データがまだないよ。")
+    else:
+        current_month = datetime.date.today().strftime("%Y-%m")
+        month_total = df[df['月'] == current_month]['amount'].sum() if current_month in df['月'].values else 0
+        st.metric(label=f"{current_month} の合計", value=f"{month_total:,} 円")
+        st.progress(min(float(month_total / 100000), 1.0))
+        st.divider()
+        monthly_df = df.groupby('月')['amount'].sum().reset_index()
+        monthly_df.columns = ['月', '給料合計']
+        fig = px.bar(monthly_df, x='月', y='給料合計', text='給料合計', color_discrete_sequence=['#ff9800'])
+        fig.update_traces(texttemplate='%{text:,}円', textposition='outside')
+        st.plotly_chart(fig, use_container_width=True)
 
-# --- 📜 履歴・削除画面 ---
-with tab2:
-    st.subheader("過去の記録と削除")
+with tab_total:
+    st.subheader("詳細履歴")
     if not df.empty:
-        # 削除機能のためにインデックス付きで表示
-        display_df = df.copy()
-        display_df = display_df.sort_values('日付', ascending=False)
-        
-        for i, row in display_df.iterrows():
-            with st.expander(f"詳細: {row['日付']} - {row['学年']} ({row['金額']}円)"):
-                st.write(f"生徒数: {row['人数']}人")
-                if st.button(f"この記録を削除する", key=f"del_{i}"):
-                    # スプレッドシートからその行を削除（簡易版として、今の行以外を上書き）
-                    updated_df = df.drop(i)
-                    conn.create(data=updated_df)
-                    st.warning("削除したぜ。再読み込みする...")
-                    time.sleep(1)
+        available_months = sorted(df['月'].unique(), reverse=True)
+        target_month = st.selectbox("表示月", available_months)
+        month_data = df[df['月'] == target_month].sort_values('date')
+        for i, row in month_data.iterrows():
+            col_detail, col_del = st.columns([5, 1])
+            with col_detail:
+                row_wd = WEEKDAYS_JP[row['date'].weekday()]
+                st.write(f"📅 {row['date'].strftime('%m/%d')}({row_wd}) | {row['koma'][:2]} | {row['amount']:,}円")
+            with col_del:
+                if st.button("消去", key=f"del_{i}"):
+                    # 削除したリストを作成
+                    updated_list = [item for item in st.session_state.all_history if not (item['date'] == row['date'].strftime("%Y-%m-%d") and item['koma'] == row['koma'])]
+                    # 空になった時のために、空のDataFrameも許容
+                    if not updated_list:
+                        conn.create(data=pd.DataFrame(columns=["date", "koma", "grade", "count", "amount"]))
+                    else:
+                        conn.create(data=pd.DataFrame(updated_list))
                     st.rerun()
-    else:
-        st.info("データがありません。")
-
-# --- 📈 分析画面 ---
-with tab3:
-    st.subheader("給料分析")
-    if not df.empty:
-        st.write("学年別の割合")
-        grade_counts = df['学年'].value_counts()
-        st.bar_chart(grade_counts)
-        
-        st.write("日別の給料推移")
-        line_df = df.set_index('日付')['金額']
-        st.line_chart(line_df)
-    else:
-        st.info("分析するデータがまだないぜ。")
