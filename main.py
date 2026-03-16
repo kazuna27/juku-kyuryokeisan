@@ -19,21 +19,21 @@ st.markdown("""
 
 st.title("💰 塾バイト給料計算 💰")
 
-# --- 📊 スプレッドシート連携 ---
+# --- 📊 スプレッドシート連携 (真・修正版) ---
 try:
-    # Secretsから [connections.gsheets] を読み込む
-    conn = st.connection("gsheets", type="gsheets")
+    # 接続の確立 (最新のライブラリに合わせた書き方)
+    conn = st.connection("gsheets", type=GSheetsConnection)
     
-    # データを読む（この瞬間、接続が成功したか判明する）
+    # データを読む
     df = conn.read(ttl=0)
 
-    st.subheader("今日の授業を記録")
+    st.subheader("授業を記録する")
     with st.form("input_form"):
         date = st.date_input("日付", datetime.date.today())
         grade = st.selectbox("学年", ["小学生", "中学生", "高校生"])
         count = st.radio("生徒数", [1, 2, 3], horizontal=True)
         
-        # 簡易計算ロジック
+        # 簡易計算
         prices = {"小学生": 1680, "中学生": 1760, "高校生": 2192}
         pay = int(prices[grade] + (count - 1) * 100)
         
@@ -48,7 +48,7 @@ try:
                 "人数": count,
                 "金額": pay
             }])
-            # サービスアカウントで追記
+            # 追記
             conn.create(data=new_row)
             st.success("チャリン♪ スプレッドシートに保存したよ！")
             time.sleep(1)
@@ -57,12 +57,10 @@ try:
     st.divider()
     st.subheader("直近の記録")
     if not df.empty:
-        # 最新の5件を表示
         st.dataframe(df.tail(5), use_container_width=True)
     else:
-        st.info("まだデータがありません。最初の授業を記録しよう！")
+        st.info("まだデータがないよ。最初の授業を記録しよう！")
 
 except Exception as e:
     st.error("まだエラーが出るみたいだね。")
-    st.warning("Secretsの設定（カッコや""の囲み）をもう一度見直してみて！")
-    st.exception(e)
+    st.write("エラー詳細:", e)
